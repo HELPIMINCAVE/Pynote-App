@@ -26,6 +26,12 @@ def add(title: str, content: str):
     save_notes(notes)
     return new_note
 
+def delete_note(note_id: int):
+    notes = load_notes()
+    # Create a new list excluding the note with the matching ID
+    updated_notes = [n for n in notes if n['id'] != note_id]
+    save_notes(updated_notes)
+
 # This links the function to your Command Line interface
 @cli.command()
 def add_note_cli(title: str, content: str):
