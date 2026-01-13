@@ -33,6 +33,6 @@ else:
             st.write(note['content'])
             
             # Create a unique key for the button using the note ID
-            if st.button(f"🗑️ Delete Note {note['id']}", key=f"del_{note['id']}"):
+            if st.button(f"🗑️ Delete Note", key=f"del_{note['id']}"):
                 delete_note(note['id'])
                 st.rerun()
