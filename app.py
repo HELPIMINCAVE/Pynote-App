@@ -16,7 +16,6 @@ with st.sidebar:
             st.rerun()
     
     st.divider()
-    st.header("Backup & Export")
     notes = load_notes()
     
     if notes:
@@ -27,8 +26,6 @@ with st.sidebar:
     
     st.divider()
     st.subheader("Danger Zone")
-    
-    # --- DELETE ALL CONFIRMATION ---
     if "confirm_delete" not in st.session_state:
         st.session_state.confirm_delete = False
     
@@ -37,19 +34,19 @@ with st.sidebar:
             st.session_state.confirm_delete = True
             st.rerun()
     else:
-        st.warning("Are you sure? This cannot be undone.")
+        st.warning("Are you sure?")
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ Yes, Delete", type="primary", use_container_width=True):
+            if st.button("✅ Yes", type="primary", use_container_width=True):
                 save_notes([])
                 st.session_state.confirm_delete = False
                 st.rerun()
         with col2:
-            if st.button("❌ Cancel", use_container_width=True):
+            if st.button("❌ No", use_container_width=True):
                 st.session_state.confirm_delete = False
                 st.rerun()
 
-# --- MAIN AREA: Search & Edit ---
+# --- MAIN AREA ---
 search_query = st.text_input("🔍 Search notes...", "").lower()
 
 if not notes:
@@ -59,17 +56,40 @@ else:
     
     for note in reversed(filtered):
         with st.expander(f"📌 {note['title']} ({note.get('timestamp', 'No Date')})"):
-            # EDIT FIELDS
-            edit_title = st.text_input("Edit Title", value=note['title'], key=f"t_{note['id']}")
-            edit_content = st.text_area("Edit Content", value=note['content'], key=f"c_{note['id']}")
             
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("💾 Save Changes", key=f"save_{note['id']}", use_container_width=True):
-                    update_note(note['id'], edit_title, edit_content)
-                    st.success("Updated!")
-                    st.rerun()
-            with c2:
-                if st.button("🗑️ Delete", key=f"del_{note['id']}", use_container_width=True):
-                    delete_note(note['id'])
-                    st.rerun()
+            # Create a unique key for the edit mode state of this specific note
+            edit_mode_key = f"edit_mode_{note['id']}"
+            if edit_mode_key not in st.session_state:
+                st.session_state[edit_mode_key] = False
+            
+            # SHOW CONTENT OR EDIT FORM
+            if not st.session_state[edit_mode_key]:
+                # 1. JUST SHOW CONTENT
+                st.write(note['content'])
+                st.divider()
+                
+                # 2. BUTTONS AT THE BOTTOM
+                col_left, col_mid, col_right = st.columns([4, 1, 1])
+                with col_mid:
+                    if st.button("🗑️", key=f"del_{note['id']}", help="Delete Note"):
+                        delete_note(note['id'])
+                        st.rerun()
+                with col_right:
+                    if st.button("✏️", key=f"btn_edit_{note['id']}", help="Edit Note"):
+                        st.session_state[edit_mode_key] = True
+                        st.rerun()
+            else:
+                # 3. SHOW EDIT FORM
+                edit_title = st.text_input("Edit Title", value=note['title'], key=f"t_{note['id']}")
+                edit_content = st.text_area("Edit Content", value=note['content'], key=f"c_{note['id']}")
+                
+                col_s, col_c = st.columns(2)
+                with col_s:
+                    if st.button("💾 Save", key=f"save_{note['id']}", use_container_width=True):
+                        update_note(note['id'], edit_title, edit_content)
+                        st.session_state[edit_mode_key] = False
+                        st.rerun()
+                with col_c:
+                    if st.button("❌ Cancel", key=f"cancel_{note['id']}", use_container_width=True):
+                        st.session_state[edit_mode_key] = False
+                        st.rerun()
