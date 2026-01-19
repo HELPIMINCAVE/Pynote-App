@@ -5,9 +5,10 @@ from datetime import datetime
 
 DB_PATH = "notes_db.json"
 
+
 def hash_password(password):
-    # Turns "password123" into a long, unreadable string
     return hashlib.sha256(password.encode()).hexdigest()
+
 
 def load_db():
     if not os.path.exists(DB_PATH):
@@ -21,29 +22,62 @@ def load_db():
         except:
             return {"users": [], "notes": []}
 
+
 def save_db(db):
     with open(DB_PATH, "w") as f:
         json.dump(db, f, indent=4)
 
+
 def register_user(username, password):
+    """Adds a new user to the database if the username is unique."""
     db = load_db()
+    # Check if username already exists
     if any(u['username'] == username for u in db['users']):
         return False
-    db['users'].append({"username": username, "password": hash_password(password)})
+    
+    db['users'].append({
+        "username": username,
+        "password": hash_password(password),
+        "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
     save_db(db)
     return True
 
+
+# IMPORTANT: Make sure this function is also present
 def login_user(username, password):
     db = load_db()
     hashed = hash_password(password)
-    return any(u['username'] == username and u['password'] == hashed for u in db['users'])
+    for user in db['users']:
+        if user['username'] == username and user['password'] == hashed:
+            user['last_login'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            save_db(db)
+            return True
+    return False
 
-def delete_account(username):
+
+def delete_account(username, password):
     db = load_db()
-    # 1. Remove the user
-    db['users'] = [u for u in db['users'] if u['username'] != username]
-    # 2. Remove all notes belonging to that user
-    db['notes'] = [n for n in db['notes'] if n.get('owner') != username]
+    hashed = hash_password(password)
+    # Check if user exists and password matches
+    user_to_delete = next((u for u in db['users'] if u['username'] == username and u['password'] == hashed), None)
+    
+    if user_to_delete:
+        db['users'] = [u for u in db['users'] if u['username'] != username]
+        db['notes'] = [n for n in db['notes'] if n.get('owner') != username]
+        save_db(db)
+        return True
+    return False
+
+
+# Ensure update_note is robust
+def update_note(note_id, title, content):
+    db = load_db()
+    for n in db['notes']:
+        if n['id'] == note_id:
+            n['title'] = title
+            n['content'] = content
+            n['timestamp'] = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} (Edited)"
     save_db(db)
 
 def load_notes(username):
