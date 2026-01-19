@@ -6,12 +6,17 @@ DB_PATH = "notes_db.json"
 
 def load_db():
     if not os.path.exists(DB_PATH):
-        # Initialize the file with empty lists if it doesn't exist
         return {"users": [], "notes": []}
+    
     with open(DB_PATH, "r") as f:
         try:
-            return json.load(f)
-        except:
+            data = json.load(f)
+            # CRITICAL CHECK: If it's a list or doesn't have 'users',
+            # it's the old format. We must reset it to the new format.
+            if not isinstance(data, dict) or "users" not in data:
+                return {"users": [], "notes": []}
+            return data
+        except (json.JSONDecodeError, KeyError):
             return {"users": [], "notes": []}
 
 def save_db(db):
