@@ -49,25 +49,25 @@ def validate_credentials(username, password):
 def register_user(username, password):
     db = load_db()
     
-    # First, check our new validation rules
-    is_valid, message = validate_credentials(username, password)
+    # 1. Validation Rules
+    is_valid, msg = validate_credentials(username, password)
     if not is_valid:
-        return False, message
+        return False, msg
     
-    # Second, check if username already exists
+    # 2. Check if username exists
     if any(u['username'] == username for u in db['users']):
         return False, "Username already exists."
     
+    # 3. Add user
     db['users'].append({
         "username": username,
         "password": hash_password(password),
         "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
     save_db(db)
-    return True, "Account created successfully!"
+    return True, "Account created! You can now login."
 
 
-# IMPORTANT: Make sure this function is also present
 def login_user(username, password):
     db = load_db()
     hashed = hash_password(password)
@@ -75,8 +75,8 @@ def login_user(username, password):
         if user['username'] == username and user['password'] == hashed:
             user['last_login'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             save_db(db)
-            return True
-    return False
+            return True, "Login successful"
+    return False, "Invalid username or password"
 
 
 def delete_account(username, password):
